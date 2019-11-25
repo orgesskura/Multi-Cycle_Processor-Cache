@@ -336,7 +336,10 @@ void set_up_IR_meta(int IR, struct instr_meta *IR_meta)
                 
             break;
             }           
-            else assert(false);
+            else {
+                printf("weerteeeeeeeeeeeeee %u\n",IR_meta->function);
+                assert(false);
+           }
             break;
         case EOP:
             printf("Executing EOP(%d) \n", IR_meta->opcode);
