@@ -13,6 +13,7 @@ int index_address;
 int tag;
 int index_bits;
 int tag_bits;
+int unified_bits;
 // struct address{
 //     int byte_offset;
 //     int index;
@@ -21,7 +22,7 @@ int tag_bits;
 struct block{
     int valid;
     int tag;
-    uint32_t data[4];
+    uint8_t data[16];
 };
 
 struct Cache{
@@ -56,7 +57,7 @@ void memory_state_init(struct architectural_state* arch_state_ptr) {
     {
         cache.blocks[i].valid = 0;
         cache.blocks[i].tag=0;
-        for(int j=0;j<4;j++){
+        for(int j=0;j<16;j++){
             cache.blocks[i].data[j] = 0;
         }
     }
@@ -99,20 +100,27 @@ int memory_read(int address){
         if(block1.valid==1 && block1.tag ==tag ) {
             
             arch_state.mem_stats.lw_cache_hits++;
-            return (int) arch_state.memory[address / 4];
-            //return (int) block1.data[byte_offset/4];
+            
         }
         else {
                 block1.data[byte_offset/4]  = arch_state.memory[address/4];             
                 block1.valid = 1;
                 block1.tag = tag;
-                cache.blocks[index_address].data[byte_offset/4] =  block1.data[byte_offset/4];
+                for(int i=0;i<4;i++){
+                   cache.blocks[index_address].data[byte_offset/4+i] =  block1.data[byte_offset/4+i];
+                }
+               
                 cache.blocks[index_address].valid = 1;
                 cache.blocks[index_address].tag = tag;
-
-                 return (int) arch_state.memory[address / 4];              
+                struct block block3;
+                 block3 = cache.blocks[index_address];
+                // unifiedData(block3.data[byte_offset/4],block3.data[byte_offset/4+1],block3.data[byte_offset/4+2],block3.data[byte_offset/4+3]);
+                // return (int) cache.blocks[index_address].data[byte_offset/4];
+                             
                                   
+
              }
+              return (int) arch_state.memory[address / 4]; 
 
 
         
@@ -122,6 +130,19 @@ int memory_read(int address){
     }
     return 0;
 }
+int getSpecificByte(int a,int count){
+    int ret;
+    int x = a;
+     while(count>=0){
+         ret = a%2;
+         x=x/2;
+         count--;
+     }
+     return ret;
+}
+// void unifiedData(int a, int b,int c,int d){
+//     unified_bits= 8*a + 4*b + 2 * c + d;
+// }
 
 // writes data on memory[address / 4]
 void memory_write(int address, int write_data){
@@ -144,7 +165,10 @@ void memory_write(int address, int write_data){
         if(block2.valid==1 && block2.tag == tag){
             arch_state.mem_stats.sw_cache_hits++;
             arch_state.memory[address / 4] = (uint32_t) write_data;
-            cache.blocks[index_address].data[byte_offset/4] =(uint32_t) write_data;
+            for(int i=0;i<4;i++){
+               cache.blocks[index_address].data[byte_offset/4+i] =getSpecificByte(write_data,i); 
+            }
+           // cache.blocks[index_address].data[byte_offset/4] =(uint32_t) write_data;
         }
         else {
            
