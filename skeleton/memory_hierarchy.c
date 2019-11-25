@@ -20,7 +20,7 @@ struct block{
     int tag;
     int data[4];
 };
-
+// struct cache comprised of pointers of struct block
 struct Cache{
     int block_size; 
     int cache_size;
@@ -41,15 +41,15 @@ void memory_state_init(struct architectural_state* arch_state_ptr) {
        // assert(0); /// @students: Remove assert(0); and initialize cache
 
         /// @students: memory_stats_init(arch_state_ptr, X); <-- fill # of tag bits for cache 'X' correctly
-       // struct  Cache cache;
-        //cache =  (struct block*) malloc( sizeof(struct block) * cache.numLines );
+       
         cache.block_size = BLOCK_SIZE;
         cache.numLines = cache_size/BLOCK_SIZE;
+        //allocate memory for all cache blocks
         cache.blocks= (struct block*) malloc( sizeof(struct block) * cache.numLines );
-        index_bits = get_log(cache.numLines);
+        index_bits = get_log(cache.numLines);//get how many bits needed for the index bits
         int offset = 4 ;// 4 words * (4 byte/word) = 16
-        tag_bits = 32 - index_bits - offset;
-        printf("indexbits %d , tag %d   mffffffffffffffffffffffffffffffffffffffffffff\n",index_bits,tag_bits);
+        tag_bits = 32 - index_bits - offset; // calculate  nr of tag_bits of the address
+        //initialize everything to 0
         for(int i = 0; i < cache.numLines; i++)
     {
         cache.blocks[i].valid = 0;
@@ -58,17 +58,19 @@ void memory_state_init(struct architectural_state* arch_state_ptr) {
             cache.blocks[i].data[j] = 0;
         }
     }
-     memory_stats_init(arch_state_ptr, tag_bits);
+     memory_stats_init(arch_state_ptr, tag_bits);//filling nr of bits of tag for cache
         
 
     }
 }
+ //this function calculates offset,index and tag of a address
  void parseInput(int address){
      byte_offset = get_piece_of_a_word(address,0,4);
      index_address = get_piece_of_a_word(address,4,index_bits);
      tag = get_piece_of_a_word(address,4+index_bits,tag_bits);
      printf("address %d , offset %d , index %d , tag %d  \n",address,byte_offset,index_address,tag);
  }
+ // my own log2 function
  int get_log(int a){
      int count =0;
      int x = a;
@@ -80,7 +82,7 @@ void memory_state_init(struct architectural_state* arch_state_ptr) {
  }
 
 
-// returns data on memory[address / 4]
+
 int memory_read(int address){
     struct block block1;
     arch_state.mem_stats.lw_total++;
@@ -88,13 +90,13 @@ int memory_read(int address){
 
     if(cache_size == 0){
         // CACHE DISABLED
-        return (int) arch_state.memory[address / 4];
+        return (int) arch_state.memory[address / 4]; // returns data on memory[address / 4]
     }else{
         // CACHE ENABLED
         //assert(0); /// @students: Remove assert(0); and implement Memory hierarchy w/ cache
         parseInput(address);
         block1 = cache.blocks[index_address];
-       // printf("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr valid=%d, block_tag = %d, tag= %d\n", block1.valid, block1.tag, tag);
+        // if i get a hit  i return the data in cache and increment cache hits
         if(block1.valid==1 && block1.tag ==tag ) {
             
             arch_state.mem_stats.lw_cache_hits++;
@@ -102,12 +104,12 @@ int memory_read(int address){
             return cache.blocks[index_address].data[byte_offset/4];
             
         }
+        // else i get the data from memory and put it in the cache
         else {  
-                printf("Cache miss tag %u , valid_bit %d , index_address %d ",block1.tag,block1.valid,block1.data[byte_offset]);
+        
                 block1.data[byte_offset/4]  = arch_state.memory[address/4];             
                 block1.valid = 1;
-                block1.tag = tag;
-               // cache.blocks[index_address].data[byte_offset/4] = arch_state.memory[address/4];   
+                block1.tag = tag;   
                 cache.blocks[index_address].valid = 1;
                 cache.blocks[index_address].tag = tag;
                 address = 0xFFFFFFF0 & address;
@@ -116,13 +118,12 @@ int memory_read(int address){
                  } 
                 return cache.blocks[index_address].data[byte_offset/4];
 
-                // unifiedData(block3.data[byte_offset/4],block3.data[byte_offset/4+1],block3.data[byte_offset/4+2],block3.data[byte_offset/4+3]);
-                // return (int) cache.blocks[index_address].data[byte_offset/4];
+               
                              
                                   
 
              }
-             // return (int) arch_state.memory[address / 4]; 
+           
 
 
         
@@ -133,21 +134,10 @@ int memory_read(int address){
     return 0;
 }
  
-int getSpecificByte(int a,int count){
-    int ret;
-    int x = a;
-     while(count>=0){
-         ret = a%2;
-         x=x/2;
-         count--;
-     }
-     return ret;
-}
-// void unifiedData(int a, int b,int c,int d){
-//     unified_bits= 8*a + 4*b + 2 * c + d;
-// }
 
-// writes data on memory[address / 4]
+
+
+
 void memory_write(int address, int write_data){
     arch_state.mem_stats.sw_total++;
     check_address_is_word_aligned(address);
@@ -155,24 +145,24 @@ void memory_write(int address, int write_data){
 
     if(cache_size == 0){
         // CACHE DISABLED
-        arch_state.memory[address/ 4] = (uint32_t) write_data;
+        arch_state.memory[address/ 4] = (uint32_t) write_data;// writes data on memory[address / 4]
     }else{
         // CACHE ENABLED
-        //assert(0); /// @stgetSpecificBytedents: Remove assert(0); and implement Memory hierarchy w/ cache
+      
 
         
 
         /// @students: your getSpecificBytemplementation must properly increment: arch_state_ptr->mem_stats.sw_cache_hits
         parseInput(address);
         block2 = cache.blocks[index_address];
+        // if i get a hit i write in both memory and cache
         if(block2.valid==1 && block2.tag == tag){
             arch_state.mem_stats.sw_cache_hits++;
             arch_state.memory[address / 4] = (uint32_t) write_data;
-         
-             cache.blocks[index_address].data[byte_offset/4] =(uint32_t)write_data; 
+            cache.blocks[index_address].data[byte_offset/4] =(uint32_t)write_data; 
             
-           // cache.blocks[index_address].data[byte_offset/4] =(uint32_t) write_data;
         }
+        // else i only write to the cache
         else {
            
             arch_state.memory[address / 4] = (uint32_t) write_data;
