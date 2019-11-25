@@ -280,7 +280,7 @@ void memory_access() {
   struct pipe_regs *next_pipe_regs = &arch_state.next_pipe_regs;
   int opcode = IR_meta->opcode;
   struct ctrl_signals *control = &arch_state.control;
-  if(control->MemRead==1 && control->IorD ==1){
+  if(control->MemRead==1 && control->IorD==1){
    next_pipe_regs->MDR =   memory_read(curr_pipe_regs->ALUOut);
   }
   else if(control->MemWrite==1 && control->IorD==1){
